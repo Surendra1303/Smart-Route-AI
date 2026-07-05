@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: smartroute-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgree123
+      POSTGRES_DB: smartroute
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - smartroute-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: smartroute-cache
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - smartroute-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: smartroute-api
+    ports:
+      - "5001:5001"
+    environment:
+      - PORT=5001
+      - DATABASE_URL=postgresql://postgres:postgree123@postgres:5432/smartroute?schema=public
+      - JWT_SECRET=fallback_secret_hash_value_for_docker
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_MODEL=gemini-2.5-flash
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - smartroute-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: smartroute-client
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    networks:
+      - smartroute-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  smartroute-network:
+    driver: bridge

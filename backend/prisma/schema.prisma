@@ -1,0 +1,114 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id                 String              @id @default(uuid())
+  email              String              @unique
+  username           String              @unique
+  fullName           String?
+  avatarUrl          String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  
+  // Navigation preferences
+  routePreference    String              @default("FASTEST") // FASTEST, ECO, SCENIC, SAFE
+  avoidTolls         Boolean             @default(false)
+  avoidHighways      Boolean             @default(false)
+  avoidFerries       Boolean             @default(false)
+  
+  // Eco system & Gamification
+  ecoPoints          Int                 @default(0)
+  drivingBadges      String[]            @default([]) // e.g., ["ECO_CHAMP", "SAFE_DRIVER"]
+  
+  // Relations
+  vehicles           Vehicle[]
+  trips              Trip[]
+  incidents          IncidentReport[]
+  savedPlaces        SavedPlace[]
+  conversations      AIConversation[]
+}
+
+model Vehicle {
+  id                  String    @id @default(uuid())
+  userId              String
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  make                String
+  model               String
+  year                Int
+  drivingMode         String    @default("COMFORT") // ECO, SPORT, COMFORT, CUSTOM
+  
+  // Diagnostics & OBD-II simulator state
+  fuelLevel           Float     @default(100.0) // Percentage (0-100) or EV Battery level
+  fuelEfficiency      Float     @default(32.4)  // MPG or kWh/100mi
+  odometer            Float     @default(12500.0)
+  oilLife             Float     @default(100.0) // Percentage
+  engineTemp          Float     @default(195.0) // Fahrenheit
+  batteryVoltage      Float     @default(12.6)  // Volts
+  batteryHealth       Float     @default(100.0) // Percentage
+  tirePressureFL      Float     @default(35.0)  // PSI
+  tirePressureFR      Float     @default(35.0)  // PSI
+  tirePressureRL      Float     @default(35.0)  // PSI
+  tirePressureRR      Float     @default(35.0)  // PSI
+  
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+}
+
+model Trip {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  startLocation   String
+  endLocation     String
+  startTime       DateTime @default(now())
+  endTime         DateTime?
+  distance        Float    // Miles
+  duration        Float    // Minutes
+  fuelUsed        Float    // Gallons or kWh
+  carbonEmission  Float    // kg CO2
+  ecoScore        Int      @default(100) // 0 - 100
+  safetyScore     Int      @default(100) // 0 - 100
+  routingType     String   @default("FASTEST")
+  
+  createdAt       DateTime @default(now())
+}
+
+model IncidentReport {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        String   // ACCIDENT, HAZARD, FOG, CONGESTION, POLICE, POTHOLE, FLOOD
+  latitude    Float
+  longitude   Float
+  description String?
+  severity    String   @default("MEDIUM") // LOW, MEDIUM, HIGH
+  createdAt   DateTime @default(now())
+}
+
+model SavedPlace {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String   // Home, Work, etc.
+  address   String
+  latitude  Float
+  longitude Float
+  category  String   @default("FAVORITE") // HOME, WORK, FAVORITE, CHARGING, FUEL, PARKING
+  createdAt DateTime @default(now())
+}
+
+model AIConversation {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      String   // user, assistant
+  message   String
+  createdAt DateTime @default(now())
+}
+
